@@ -1,0 +1,6 @@
+{
+  "name": "พี่ชอบผมรึเปล่า (Do You Like Me?)",
+  "description": "เว็บถามความในใจสุดน่ารัก พี่ชอบผมรึเปล่า? 🥺✨",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
