@@ -32,18 +32,25 @@ async function startServer() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 
+  const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwG4s3hOOTu-q0NkY4F5i6ShU-qd6YznvQ6eQ5X0Qo0lJP6_4ET8M8KmIjQeByVI8eR/exec';
+
   // Load drive config if exists
   let driveConfig: DriveConfig = {
     accessToken: null,
     spreadsheetId: null,
     spreadsheetUrl: null,
-    webhookUrl: null,
+    webhookUrl: DEFAULT_WEBHOOK_URL,
   };
 
   if (fs.existsSync(DRIVE_CONFIG_FILE)) {
     try {
       driveConfig = JSON.parse(fs.readFileSync(DRIVE_CONFIG_FILE, 'utf8'));
     } catch {}
+  }
+
+  // Ensure default webhook URL is always active if none is set
+  if (!driveConfig.webhookUrl) {
+    driveConfig.webhookUrl = DEFAULT_WEBHOOK_URL;
   }
 
   const saveDriveConfig = () => {

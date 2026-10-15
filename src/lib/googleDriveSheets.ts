@@ -7,6 +7,7 @@ export const TARGET_FOLDER_ID = '1yv8c5zQSs05eMh2SAYIiIYaU7S7hwVel';
 export const TARGET_FOLDER_NAME = 'แบร่';
 export const TARGET_FOLDER_URL = `https://drive.google.com/drive/folders/${TARGET_FOLDER_ID}?usp=drive_link`;
 export const SPREADSHEET_TITLE = 'บันทึกคำตอบ_พี่ชอบผมรึเปล่า';
+export const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwG4s3hOOTu-q0NkY4F5i6ShU-qd6YznvQ6eQ5X0Qo0lJP6_4ET8M8KmIjQeByVI8eR/exec';
 
 export interface LogEntry {
   action: string;

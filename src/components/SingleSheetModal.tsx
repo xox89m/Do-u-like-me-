@@ -16,7 +16,10 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  Share2,
+  Send,
 } from 'lucide-react';
+import { DEFAULT_WEBHOOK_URL } from '../lib/googleDriveSheets';
 
 export interface SheetRow {
   timestamp: string;
@@ -59,10 +62,62 @@ export const SingleSheetModal: React.FC<SingleSheetModalProps> = ({
   const [copiedData, setCopiedData] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
   const [showWebhookGuide, setShowWebhookGuide] = useState(false);
-  const [inputWebhook, setInputWebhook] = useState(webhookUrl || '');
+  const [inputWebhook, setInputWebhook] = useState(webhookUrl || DEFAULT_WEBHOOK_URL);
   const [isSavingWebhook, setIsSavingWebhook] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [recipientInput, setRecipientInput] = useState('พี่อ้อมใจ');
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+
+  const getShareLink = () => {
+    if (typeof window === 'undefined') return '';
+    const base = window.location.origin + window.location.pathname;
+    if (recipientInput.trim()) {
+      return `${base}?to=${encodeURIComponent(recipientInput.trim())}`;
+    }
+    return base;
+  };
+
+  const handleCopyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareLink());
+      setCopiedShareLink(true);
+      setTimeout(() => setCopiedShareLink(false), 2500);
+      setSyncMessage('คัดลอกลิงก์สำเร็จแล้ว! นำไปส่งให้เขาใน LINE / Messenger / IG ได้เลย ✨');
+      setTimeout(() => setSyncMessage(null), 4000);
+    } catch {}
+  };
+
+  const handleTestWebhookPing = async () => {
+    const target = (webhookUrl || DEFAULT_WEBHOOK_URL).trim();
+    if (!target) return;
+    setIsTestingWebhook(true);
+    try {
+      const testPayload = {
+        timestamp: new Date().toLocaleString('th-TH'),
+        userName: 'ทดสอบส่งจากระบบ ✨',
+        action: 'ทดสอบการเชื่อมต่อ Google Sheets',
+        noClickCount: 0,
+        message: 'ระบบพร้อมบันทึกอัตโนมัติแล้ว!',
+        mood: 'happy',
+      };
+      await fetch(target, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(testPayload),
+      });
+      setSyncMessage('ส่งแถวทดสอบเข้า Google Sheet สำเร็จแล้ว! ลองเปิดดูในชีตได้เลย 📊✨');
+      setTimeout(() => setSyncMessage(null), 5000);
+    } catch (err) {
+      console.error(err);
+      setSyncMessage('ส่งแถวทดสอบแล้ว (ตรวจสอบใน Google Sheet ได้เลย)');
+      setTimeout(() => setSyncMessage(null), 5000);
+    } finally {
+      setIsTestingWebhook(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -232,6 +287,60 @@ export const SingleSheetModal: React.FC<SingleSheetModalProps> = ({
           </div>
         )}
 
+        {/* Share Link Generator Box */}
+        <div className="px-5 sm:px-6 py-3 bg-gradient-to-r from-pink-50/70 via-rose-50/50 to-indigo-50/60 border-b border-pink-100 text-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-pink-500 text-white rounded-lg">
+                <Share2 className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-gray-800 text-xs sm:text-sm flex items-center gap-1.5">
+                  <span>ส่งลิงก์นี้ให้เขาได้เลย</span>
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-semibold rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    บันทึกเข้า Google Sheet อัตโนมัติ
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-500">
+                  เมื่อเขากด &quot;ชอบ&quot; หรือ &quot;ไม่ชอบ&quot; ระบบจะส่งข้อมูลตรงเข้า Google Sheet ทันทีโดยเขาไม่ต้องล็อกอิน
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <input
+                type="text"
+                value={recipientInput}
+                onChange={(e) => setRecipientInput(e.target.value)}
+                placeholder="ระบุชื่อพี่ (เช่น พี่ฟ้า)"
+                className="w-32 sm:w-36 px-2.5 py-1.5 border border-pink-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-pink-300"
+                title="ถ้าใส่ชื่อ หน้าเว็บจะทักทายชื่อนี้ และในชีตจะบันทึกเป็นชื่อนี้"
+              />
+              <button
+                type="button"
+                onClick={handleCopyShareLink}
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold shadow-xs transition-all cursor-pointer text-xs"
+              >
+                {copiedShareLink ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedShareLink ? 'คัดลอกแล้ว!' : 'คัดลอกลิงก์ส่ง'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-2 flex items-center justify-between text-[11px] text-gray-500 bg-white/70 px-3 py-1.5 rounded-xl border border-pink-100/80">
+            <span className="font-mono text-gray-600 truncate mr-2">{getShareLink()}</span>
+            <button
+              type="button"
+              onClick={handleTestWebhookPing}
+              disabled={isTestingWebhook}
+              className="text-pink-600 hover:text-pink-800 font-semibold whitespace-nowrap cursor-pointer disabled:opacity-50"
+            >
+              {isTestingWebhook ? 'กำลังทดสอบ...' : '⚡ ทดสอบส่งแถวเข้า Sheet'}
+            </button>
+          </div>
+        </div>
+
         {/* Zero-Login Google Apps Script Webhook Accordion */}
         <div className="px-5 sm:px-6 py-2 bg-gradient-to-r from-amber-50/50 via-pink-50/40 to-amber-50/50 border-b border-pink-100/60 text-xs">
           <div className="flex items-center justify-between">
@@ -240,7 +349,7 @@ export const SingleSheetModal: React.FC<SingleSheetModalProps> = ({
               className="flex items-center gap-2 font-semibold text-gray-700 hover:text-pink-600 transition-colors cursor-pointer py-1"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>วิธีส่งข้อมูลเข้า Google Sheet ในโฟลเดอร์ &quot;แบร่&quot; อัตโนมัติ (ไม่ต้องล็อกอินตลอดชีพ)</span>
+              <span>การตั้งค่า Webhook Google Apps Script (กำลังเชื่อมต่ออยู่)</span>
               {showWebhookGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
             {!driveConnected && (

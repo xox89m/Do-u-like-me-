@@ -26,15 +26,32 @@ import { SongPlayer } from './components/SongPlayer';
 import { SingleSheetModal, SheetRow } from './components/SingleSheetModal';
 import { sounds } from './lib/soundEffects';
 import { googleSignIn, getAccessToken } from './lib/firebase';
-import { appendLogEntry, TARGET_FOLDER_URL } from './lib/googleDriveSheets';
+import { appendLogEntry, TARGET_FOLDER_URL, DEFAULT_WEBHOOK_URL } from './lib/googleDriveSheets';
 
 export default function App() {
+  // Read recipient name from query param (e.g. ?to=พี่อ้อมใจ) or default to "พี่อ้อมใจ"
+  const [recipientName] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'พี่อ้อมใจ';
+    const params = new URLSearchParams(window.location.search);
+    const to = params.get('to') || params.get('name') || params.get('for');
+    return to ? to.trim() : 'พี่อ้อมใจ';
+  });
+
   // Interaction states
   const [noCount, setNoCount] = useState<number>(0);
   const [yesCount, setYesCount] = useState<number>(0);
   const [hasLiked, setHasLiked] = useState<boolean>(false);
   const [mood, setMood] = useState<MoodType>('asking');
-  const [speechText, setSpeechText] = useState<string>('พี่ชอบผมรึเปล่า?');
+  const [speechText, setSpeechText] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const to = params.get('to') || params.get('name') || params.get('for');
+      if (to && to.trim()) {
+        return `${to.trim()} ชอบผมรึเปล่า?`;
+      }
+    }
+    return 'พี่อ้อมใจ ชอบผมรึเปล่า?';
+  });
   const [dodgePosition, setDodgePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [hasDodgedOnce, setHasDodgedOnce] = useState<boolean>(false);
 
@@ -53,11 +70,12 @@ export default function App() {
   const [driveConnected, setDriveConnected] = useState<boolean>(false);
   const [spreadsheetUrl, setSpreadsheetUrl] = useState<string | null>(null);
   const [isConnectingDrive, setIsConnectingDrive] = useState<boolean>(false);
-  const [webhookUrl, setWebhookUrl] = useState<string | null>(() => {
+  const [webhookUrl, setWebhookUrl] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('applet_webhook_url');
+      const saved = localStorage.getItem('applet_webhook_url');
+      if (saved && saved.trim()) return saved.trim();
     }
-    return null;
+    return DEFAULT_WEBHOOK_URL;
   });
 
   // Admin stealth mode - hides all Drive & Sheet signs from normal visitors
@@ -284,8 +302,8 @@ export default function App() {
       minute: '2-digit',
       second: '2-digit',
     });
-    // Name format: "{เวลา} ไอ้นี้" as requested
-    const defaultName = `${timeOnly} ไอ้นี้`;
+    // Name format: if recipientName passed in URL (?to=พี่ฟ้า), use it; otherwise "{เวลา} ไอ้นี้"
+    const defaultName = recipientName ? `${recipientName} (${timeOnly})` : `${timeOnly} ไอ้นี้`;
 
     const payload = {
       timestamp: new Date().toLocaleString('th-TH'),
@@ -305,15 +323,28 @@ export default function App() {
     } catch {}
 
     // 2. Client-side direct send to Google Apps Script Webhook (works on GitHub Pages with zero login!)
-    const targetWebhook = webhookUrl || (typeof window !== 'undefined' ? localStorage.getItem('applet_webhook_url') : null);
+    const targetWebhook = webhookUrl || (typeof window !== 'undefined' ? localStorage.getItem('applet_webhook_url') : null) || DEFAULT_WEBHOOK_URL;
     if (targetWebhook) {
+      const payloadString = JSON.stringify(payload);
+
+      // Method A: fetch with no-cors & text/plain (avoids CORS preflight, delivers immediately)
       try {
         fetch(targetWebhook, {
           method: 'POST',
           mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify(payload),
-        }).catch(() => {});
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: payloadString,
+        }).catch((err) => {
+          console.warn('Webhook fetch notice:', err);
+        });
+      } catch {}
+
+      // Method B: navigator.sendBeacon (guarantees transmission in background even if mobile user closes tab immediately)
+      try {
+        if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+          const blob = new Blob([payloadString], { type: 'text/plain;charset=utf-8' });
+          navigator.sendBeacon(targetWebhook, blob);
+        }
       } catch {}
     }
 
@@ -352,8 +383,8 @@ export default function App() {
       setDodgePosition(newPos);
       setHasDodgedOnce(true);
       setMood('dodge1');
-      setSpeechText('จริงๆหรออ 😗');
-      recordAction('กดไม่ชอบ ครั้งที่ 1 (ปุ่มหลบ)', 1, 'จริงๆหรออ 😗');
+      setSpeechText(`จริงๆหรออ ${recipientName} 😗`);
+      recordAction('กดไม่ชอบ ครั้งที่ 1 (ปุ่มหลบ)', 1, `จริงๆหรออ ${recipientName} 😗`);
     }
   };
 
@@ -370,20 +401,20 @@ export default function App() {
       setDodgePosition(newPos);
       setHasDodgedOnce(true);
       setMood('dodge1');
-      setSpeechText('จริงๆหรออ 😗');
-      recordAction('กดไม่ชอบ ครั้งที่ 1', 1, 'จริงๆหรออ 😗');
+      setSpeechText(`จริงๆหรออ ${recipientName} 😗`);
+      recordAction('กดไม่ชอบ ครั้งที่ 1', 1, `จริงๆหรออ ${recipientName} 😗`);
     } else if (nextCount === 2) {
       sounds.playSadSqueak();
       setDodgePosition({ x: 0, y: 0 });
       setMood('click2');
-      setSpeechText('จริงดิ 🥲');
-      recordAction('กดไม่ชอบ ครั้งที่ 2', 2, 'จริงดิ 🥲');
+      setSpeechText(`จริงดิ ${recipientName} 🥲`);
+      recordAction('กดไม่ชอบ ครั้งที่ 2', 2, `จริงดิ ${recipientName} 🥲`);
     } else if (nextCount === 3) {
       sounds.playDrama();
       setDodgePosition({ x: 0, y: 0 });
       setMood('click3');
-      setSpeechText('เอ้้าา โดนเล่นกับใจหรอเนี่ย 💔');
-      recordAction('กดไม่ชอบ ครั้งที่ 3 (ปฏิเสธ)', 3, 'เอ้้าา โดนเล่นกับใจหรอเนี่ย 💔');
+      setSpeechText(`เอ้้าา ${recipientName}เล่นกับใจผมหรอเนี่ย 💔`);
+      recordAction('กดไม่ชอบ ครั้งที่ 3 (ปฏิเสธ)', 3, `เอ้้าา ${recipientName}เล่นกับใจผมหรอเนี่ย 💔`);
     }
   };
 
@@ -403,27 +434,27 @@ export default function App() {
       // ครั้งที่ 1: "เดี๋ยวก่อนน คิดดีๆนะ" -> จอเริ่มมืดลง + สั่นเบาๆ
       sounds.playPop();
       setMood('yes1');
-      setSpeechText('เดี๋ยวก่อนน คิดดีๆนะ 🥺');
-      recordAction('กดชอบ ครั้งที่ 1', noCount, 'เดี๋ยวก่อนน คิดดีๆนะ');
+      setSpeechText(`เดี๋ยวก่อนน ${recipientName}คิดดีๆ นะ 🥺`);
+      recordAction('กดชอบ ครั้งที่ 1', noCount, `เดี๋ยวก่อนน ${recipientName}คิดดีๆ นะ`);
     } else if (nextYes === 2) {
       // ครั้งที่ 2: "แน่ใจจ แต่ผมไม่ได้ดีอะไรขนาดนั้นนะ" -> จอมืดลงอีก + สั่นแรงขึ้น
       sounds.playPop();
       setMood('yes2');
-      setSpeechText('แน่ใจจ แต่ผมไม่ได้ดีอะไรขนาดนั้นนะ 👉👈');
+      setSpeechText(`แน่ใจนะะ แต่ผมไม่ได้ดีอะไรขนาดนั้นนะ 👉👈`);
       recordAction('กดชอบ ครั้งที่ 2', noCount, 'แน่ใจจ แต่ผมไม่ได้ดีอะไรขนาดนั้นนะ');
     } else if (nextYes === 3) {
       // ครั้งที่ 3: "เห้ยย พี่เสียสติไปแล้ว ผมง้อคนไม่เป็น เอาใจใส่คนไม่เก่ง เผลอทำคนอื่น น้อยใจไม่รู้ตัวอีกนะ คิดดีๆ อย่ามาชอบคนแบบผมเลยยย" -> จอมืดตื๋อ + สั่นสะเทือนแรง
       sounds.playDrama();
       setMood('yes3');
-      setSpeechText('เห้ยย พี่เสียสติไปแล้ว ผมง้อคนไม่เป็น เอาใจใส่คนไม่เก่ง เผลอทำคนอื่น น้อยใจไม่รู้ตัวอีกนะ คิดดีๆ อย่ามาชอบคนแบบผมเลยยย');
-      recordAction('กดชอบ ครั้งที่ 3', noCount, 'เห้ยย พี่เสียสติไปแล้ว... อย่ามาชอบคนแบบผมเลยยย');
+      setSpeechText(`เห้ยย ${recipientName}เสียสติไปแล้ว ผมง้อคนไม่เป็น เอาใจใส่คนไม่เก่ง เผลอทำคนอื่น น้อยใจไม่รู้ตัวอีกนะ คิดดีๆ อย่ามาชอบคนแบบผมเลยยย`);
+      recordAction('กดชอบ ครั้งที่ 3', noCount, `เห้ยย ${recipientName}เสียสติไปแล้ว... อย่ามาชอบคนแบบผมเลยยย`);
     } else {
       // ครั้งสุดท้าย: "จริงมั้ยเนี่ยย พี่เสียสติไปแล้วว ผมจะแจ้งตำรวจ" -> จอกลับมาสว่างปกติ! สั่นหยุด! เอาหัวใจออก! สติ๊กเกอร์เป็นหน้าอ้อน!
       sounds.playCelebrationFanfare();
       setHasLiked(true);
       setMood('accepted');
-      setSpeechText('จริงมั้ยเนี่ยย พี่เสียสติไปแล้วว ผมจะแจ้งตำรวจ ');
-      recordAction('กดชอบ ครั้งสุดท้าย ✨', noCount, 'จริงมั้ยเนี่ยย พี่เสียสติไปแล้วว ผมจะแจ้งตำรวจ ');
+      setSpeechText(`จริงมั้ยเนี่ยย ${recipientName}เสียสติไปแล้วว ผมจะแจ้งตำรวจ 💖`);
+      recordAction('กดชอบ ครั้งสุดท้าย ✨', noCount, `จริงมั้ยเนี่ยย ${recipientName}เสียสติไปแล้วว ผมจะแจ้งตำรวจ `);
     }
   };
 
@@ -450,7 +481,7 @@ export default function App() {
     setYesCount(0);
     setHasLiked(false);
     setMood('asking');
-    setSpeechText('พี่ชอบผมรึเปล่า?');
+    setSpeechText(recipientName ? `${recipientName} ชอบผมรึเปล่า?` : 'พี่ชอบผมรึเปล่า?');
     setDodgePosition({ x: 0, y: 0 });
     setHasDodgedOnce(false);
     setSentMessage(null);
@@ -858,7 +889,7 @@ export default function App() {
                 }`}
               >
                 <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>งื้ออ พี่ชอบผมได้ไงเนี่ย</span>
+                <span>งื้ออ {recipientName}ชอบผมได้ไงเนี่ย</span>
               </div>
               <button
                 onClick={handleReset}
@@ -921,7 +952,7 @@ export default function App() {
                   type="text"
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
-                  placeholder="พิมพ์ข้อความในใจถึงน้อง..."
+                  placeholder={`พิมพ์ข้อความในใจถึงน้องสิ ${recipientName}...`}
                   className={`flex-1 px-4 py-2.5 text-xs sm:text-sm rounded-2xl border focus:outline-none transition-all ${
                     isSadBlueTheme
                       ? 'bg-blue-950/80 text-sky-100 border-blue-700 focus:ring-2 focus:ring-sky-400 placeholder:text-blue-300/40'
