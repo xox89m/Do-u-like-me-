@@ -59,10 +59,10 @@ export const SongPlayer: React.FC<SongPlayerProps> = ({ autoPlay = false }) => {
       // Fallback switch between /song.mp3 and /api/song.mp3
       if (audioRef.current) {
         try {
-          if (!audioRef.current.src.includes('/api/song.mp3')) {
-            audioRef.current.src = '/api/song.mp3';
+          if (!audioRef.current.src.includes('song.m4a')) {
+            audioRef.current.src = './song.m4a';
           } else {
-            audioRef.current.src = '/song.mp3';
+            audioRef.current.src = './song.mp3';
           }
           await audioRef.current.play();
           setIsPlaying(true);
@@ -138,8 +138,8 @@ export const SongPlayer: React.FC<SongPlayerProps> = ({ autoPlay = false }) => {
           }
         }}
         onError={() => {
-          if (audioRef.current && !audioBlobUrl && !audioRef.current.src.includes('/api/song.mp3')) {
-            audioRef.current.src = '/api/song.mp3';
+          if (audioRef.current && !audioBlobUrl && !audioRef.current.src.includes('song.m4a')) {
+            audioRef.current.src = './song.m4a';
             audioRef.current.load();
           }
         }}
