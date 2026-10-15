@@ -5,6 +5,8 @@
     font-family: 'Mali', 'Itim', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, cursive, sans-serif;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    background-color: #0f0f26;
+    color: #ffffff;
   }
 }
 

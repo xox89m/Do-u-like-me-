@@ -18,6 +18,8 @@ import {
   Folder,
   ExternalLink,
   CheckCircle2,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { CuteSticker, MoodType } from './components/CuteStickers';
 import { SongPlayer } from './components/SongPlayer';
@@ -68,6 +70,27 @@ export default function App() {
 
   // Audio settings
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+
+  // Theme: Default to Midnight #0f0f26 so the website is NEVER white!
+  const [themeMode, setThemeMode] = useState<'midnight' | 'pastel'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('applet_theme_mode');
+      if (saved === 'pastel') return 'pastel';
+    }
+    return 'midnight'; // Default #0f0f26 deep midnight
+  });
+
+  const isMidnight = themeMode === 'midnight';
+
+  const toggleThemeMode = () => {
+    setThemeMode((prev) => {
+      const next = prev === 'midnight' ? 'pastel' : 'midnight';
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('applet_theme_mode', next);
+      }
+      return next;
+    });
+  };
 
   // Container ref
   const playAreaRef = useRef<HTMLDivElement>(null);
@@ -470,12 +493,14 @@ export default function App() {
 
   return (
     <div
-      className={`relative min-h-screen w-full transition-colors duration-1000 flex flex-col justify-between overflow-x-hidden selection:bg-pink-300 ${
+      className={`relative min-h-screen w-full transition-colors duration-1000 flex flex-col justify-between overflow-x-hidden ${
         isSadBlueTheme
-          ? 'bg-gradient-to-br from-[#060D24] via-[#0E1F4D] to-[#142C66] text-blue-100'
+          ? 'bg-gradient-to-br from-[#060D24] via-[#0E1F4D] to-[#142C66] text-blue-100 selection:bg-sky-400'
+          : isMidnight
+          ? 'bg-[#0f0f26] bg-gradient-to-br from-[#0f0f26] via-[#121236] to-[#090919] text-white selection:bg-pink-500'
           : hasLiked
-          ? 'bg-gradient-to-br from-rose-100 via-pink-100 to-amber-50 text-gray-800'
-          : 'bg-gradient-to-br from-rose-50 via-pink-50 to-amber-50 text-gray-800'
+          ? 'bg-gradient-to-br from-rose-100 via-pink-100 to-amber-50 text-gray-800 selection:bg-pink-300'
+          : 'bg-gradient-to-br from-rose-50 via-pink-50 to-amber-50 text-gray-800 selection:bg-pink-300'
       }`}
     >
       {/* Screen Darkening Overlay when pressing "ชอบ" (มืดลงเรื่อยๆ และกลับมาปกติเมื่อชอบครั้งสุดท้าย) */}
@@ -503,13 +528,15 @@ export default function App() {
         </div>
       )}
 
-      {/* Top Bar - Clean & Stealth: Visitors only see title & sound toggle */}
+      {/* Top Bar - Clean & Stealth: Visitors only see title, theme toggle & sound toggle */}
       <header className="w-full px-4 sm:px-8 py-3.5 flex items-center justify-between z-30">
         <div className="flex items-center gap-2">
           <div
             className={`w-9 h-9 rounded-2xl flex items-center justify-center shadow-md transition-all ${
               isSadBlueTheme
                 ? 'bg-gradient-to-tr from-sky-500 to-blue-600 text-white shadow-sky-900/50'
+                : isMidnight
+                ? 'bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-indigo-950/60'
                 : 'bg-gradient-to-tr from-pink-500 to-rose-400 text-white shadow-pink-200/50'
             }`}
           >
@@ -523,7 +550,7 @@ export default function App() {
           </div>
           <span
             className={`font-bold text-sm sm:text-base leading-tight ${
-              isSadBlueTheme ? 'text-sky-200' : 'text-gray-800'
+              isSadBlueTheme ? 'text-sky-200' : isMidnight ? 'text-indigo-100' : 'text-gray-800'
             }`}
           >
             พี่ชอบผมรึเปล่า?
@@ -544,6 +571,8 @@ export default function App() {
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-xs transition-all ${
                     isSadBlueTheme
                       ? 'bg-blue-950/80 border border-emerald-500/40 text-emerald-300 hover:bg-blue-900'
+                      : isMidnight
+                      ? 'bg-[#18183c] border border-emerald-500/40 text-emerald-300 hover:bg-[#20204d]'
                       : 'bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100'
                   }`}
                   title="เปิดดู Google Sheets ในโฟลเดอร์ แบร่"
@@ -560,6 +589,8 @@ export default function App() {
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-xs transition-all cursor-pointer ${
                     isSadBlueTheme
                       ? 'bg-blue-950/80 border border-sky-600 text-sky-200 hover:bg-blue-900'
+                      : isMidnight
+                      ? 'bg-[#18183c] border border-indigo-700/60 text-indigo-200 hover:bg-[#20204d]'
                       : 'bg-white/90 border border-pink-200 text-pink-700 hover:bg-pink-50'
                   }`}
                   title="เชื่อมต่อ Google Drive เพื่อบันทึกลงโฟลเดอร์ แบร่"
@@ -578,6 +609,8 @@ export default function App() {
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-full text-xs font-semibold shadow-xs transition-all cursor-pointer ${
                   isSadBlueTheme
                     ? 'bg-blue-950/80 border-blue-800 text-sky-200 hover:bg-blue-900'
+                    : isMidnight
+                    ? 'bg-[#18183c] border-indigo-700/60 text-indigo-200 hover:bg-[#20204d]'
                     : 'bg-white/80 border-pink-200 text-gray-700 hover:text-pink-600 hover:bg-white'
                 }`}
                 title="เปิดดูไฟล์ชีตคำตอบทั้งหมด"
@@ -594,18 +627,35 @@ export default function App() {
             </>
           )}
 
+          {/* Theme Toggle (#0f0f26 Midnight vs Pastel) */}
+          <button
+            onClick={toggleThemeMode}
+            className={`p-2 rounded-full border shadow-xs transition-all cursor-pointer ${
+              isSadBlueTheme
+                ? 'bg-blue-950/70 border-blue-800 text-sky-300 hover:bg-blue-900'
+                : isMidnight
+                ? 'bg-[#18183c] border-indigo-700/60 text-amber-300 hover:text-amber-200 hover:bg-[#222250]'
+                : 'bg-white/80 border-pink-100 text-gray-600 hover:text-pink-600 hover:bg-white'
+            }`}
+            title={isMidnight ? 'เปลี่ยนเป็นธีมพาสเทลชมพู' : 'เปลี่ยนเป็นธีมมิดไนท์ (#0f0f26)'}
+          >
+            {isMidnight ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+          </button>
+
           {/* Sound Toggle (Always visible) */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={`p-2 rounded-full border shadow-xs transition-all cursor-pointer ${
               isSadBlueTheme
                 ? 'bg-blue-950/70 border-blue-800 text-sky-300 hover:bg-blue-900'
+                : isMidnight
+                ? 'bg-[#18183c] border-indigo-700/60 text-indigo-300 hover:text-pink-300 hover:bg-[#222250]'
                 : 'bg-white/80 border-pink-100 text-gray-600 hover:text-pink-600 hover:bg-white'
             }`}
             title={soundEnabled ? 'ปิดเสียงเอฟเฟกต์' : 'เปิดเสียงเอฟเฟกต์'}
           >
             {soundEnabled ? (
-              <Volume2 className={`w-4 h-4 ${isSadBlueTheme ? 'text-sky-400' : 'text-pink-500'}`} />
+              <Volume2 className={`w-4 h-4 ${isSadBlueTheme ? 'text-sky-400' : isMidnight ? 'text-pink-400' : 'text-pink-500'}`} />
             ) : (
               <VolumeX className="w-4 h-4 text-gray-400" />
             )}
@@ -623,6 +673,8 @@ export default function App() {
             className={`fixed top-16 left-1/2 transform -translate-x-1/2 z-50 px-5 py-2.5 rounded-full shadow-lg border text-xs sm:text-sm font-semibold flex items-center gap-2 max-w-[90vw] text-center ${
               isSadBlueTheme
                 ? 'bg-blue-900/95 text-sky-200 border-sky-500/50'
+                : isMidnight
+                ? 'bg-[#1b1b42]/95 text-indigo-100 border-indigo-500/40 shadow-indigo-950/60'
                 : 'bg-white/95 text-pink-700 border-pink-200'
             }`}
           >
@@ -640,18 +692,20 @@ export default function App() {
           className={`w-full rounded-[2.5rem] p-6 sm:p-10 shadow-2xl border flex flex-col items-center text-center relative overflow-hidden transition-all duration-700 ${
             isSadBlueTheme
               ? 'bg-[#0B1A3A]/90 backdrop-blur-xl border-blue-800/80 shadow-sky-950/80 text-blue-100'
+              : isMidnight
+              ? 'bg-[#151538]/92 backdrop-blur-xl border-indigo-500/30 shadow-2xl shadow-indigo-950/80 text-white'
               : 'bg-white/80 backdrop-blur-xl border-white/60 shadow-pink-200/40 text-gray-800'
           }`}
         >
           {/* Glowing backdrops */}
           <div
             className={`absolute -top-24 -left-24 w-52 h-52 rounded-full blur-3xl pointer-events-none transition-colors duration-700 ${
-              isSadBlueTheme ? 'bg-sky-600/25' : 'bg-pink-200/40'
+              isSadBlueTheme ? 'bg-sky-600/25' : isMidnight ? 'bg-indigo-600/20' : 'bg-pink-200/40'
             }`}
           />
           <div
             className={`absolute -bottom-24 -right-24 w-52 h-52 rounded-full blur-3xl pointer-events-none transition-colors duration-700 ${
-              isSadBlueTheme ? 'bg-blue-600/25' : 'bg-rose-200/40'
+              isSadBlueTheme ? 'bg-blue-600/25' : isMidnight ? 'bg-pink-600/15' : 'bg-rose-200/40'
             }`}
           />
 
@@ -695,6 +749,14 @@ export default function App() {
                 ? 'bg-gradient-to-r from-amber-400 via-pink-400 to-rose-400 text-white shadow-pink-200/50 shadow-lg'
                 : isSadBlueTheme
                 ? 'bg-gradient-to-r from-blue-900 to-sky-950 text-sky-200 border border-sky-500/40 shadow-sky-900/40'
+                : isMidnight
+                ? (yesCount > 0
+                    ? 'bg-gradient-to-r from-rose-950/80 via-[#2f1a38] to-pink-950/80 text-rose-200 border border-pink-500/40 shadow-lg shadow-pink-950/50'
+                    : noCount === 2
+                    ? 'bg-blue-950/90 text-blue-200 border border-blue-500/40'
+                    : noCount === 1
+                    ? 'bg-amber-950/90 text-amber-200 border border-amber-500/40'
+                    : 'bg-gradient-to-r from-[#1c1c46] via-[#222254] to-[#1c1c46] text-indigo-100 border border-indigo-500/30 shadow-indigo-950/50')
                 : noCount === 2
                 ? 'bg-blue-50 text-blue-900 border border-blue-200'
                 : noCount === 1
@@ -769,7 +831,11 @@ export default function App() {
                   onClick={handleNoClick}
                   className={`px-6 sm:px-7 py-3 sm:py-3.5 font-semibold text-sm sm:text-base rounded-full shadow-xs transition-all duration-200 border cursor-pointer active:scale-95 ${
                     noCount === 2
-                      ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                      ? isMidnight
+                        ? 'bg-blue-950/80 text-sky-300 border-blue-700 hover:bg-blue-900'
+                        : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                      : isMidnight
+                      ? 'bg-[#1b1b42] text-indigo-200 border-indigo-500/40 hover:bg-[#242456] hover:text-white'
                       : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-800'
                   }`}
                 >
@@ -784,13 +850,23 @@ export default function App() {
           {/* Celebration state controls (NO hearts - clean gentle cute celebration with pleading bunny) */}
           {hasLiked && (
             <div className="mt-6 flex flex-col items-center gap-3">
-              <div className="p-3 bg-amber-50 text-amber-900 border border-amber-200 rounded-2xl text-xs sm:text-sm font-medium flex items-center gap-2">
+              <div
+                className={`p-3 rounded-2xl text-xs sm:text-sm font-medium flex items-center gap-2 border ${
+                  isMidnight
+                    ? 'bg-[#1e1e48] text-amber-200 border-amber-500/30'
+                    : 'bg-amber-50 text-amber-900 border-amber-200'
+                }`}
+              >
                 <Sparkles className="w-4 h-4 text-amber-500" />
                 <span>งื้ออ พี่ชอบผมได้ไงเนี่ย</span>
               </div>
               <button
                 onClick={handleReset}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-full text-xs font-semibold border border-pink-200 transition-colors cursor-pointer"
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                  isMidnight
+                    ? 'bg-[#1e1e48] hover:bg-[#282860] text-pink-300 border-pink-500/30'
+                    : 'bg-pink-50 hover:bg-pink-100 text-pink-700 border-pink-200'
+                }`}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>เล่นใหม่อีกรอบ</span>
@@ -819,13 +895,17 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.15 }}
               className={`mt-6 w-full pt-6 border-t ${
-                isSadBlueTheme ? 'border-blue-800/60' : 'border-pink-100/80'
+                isSadBlueTheme
+                  ? 'border-blue-800/60'
+                  : isMidnight
+                  ? 'border-indigo-500/25'
+                  : 'border-pink-100/80'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <label
                   className={`text-xs sm:text-sm font-semibold flex items-center gap-1.5 ${
-                    isSadBlueTheme ? 'text-sky-200' : 'text-gray-700'
+                    isSadBlueTheme ? 'text-sky-200' : isMidnight ? 'text-indigo-200' : 'text-gray-700'
                   }`}
                 >
                   <MessageCircle className={`w-4 h-4 ${isSadBlueTheme ? 'text-sky-400' : 'text-pink-500'}`} />
@@ -842,10 +922,12 @@ export default function App() {
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
                   placeholder="พิมพ์ข้อความในใจถึงน้อง..."
-                  className={`flex-1 px-4 py-2.5 text-xs sm:text-sm rounded-2xl border focus:outline-none transition-all placeholder:text-gray-400 ${
+                  className={`flex-1 px-4 py-2.5 text-xs sm:text-sm rounded-2xl border focus:outline-none transition-all ${
                     isSadBlueTheme
-                      ? 'bg-blue-950/80 text-sky-100 border-blue-700 focus:ring-2 focus:ring-sky-400'
-                      : 'bg-pink-50/50 hover:bg-pink-50/80 focus:bg-white text-gray-800 border-pink-200 focus:ring-2 focus:ring-pink-400'
+                      ? 'bg-blue-950/80 text-sky-100 border-blue-700 focus:ring-2 focus:ring-sky-400 placeholder:text-blue-300/40'
+                      : isMidnight
+                      ? 'bg-[#0f0f26]/90 text-white border-indigo-500/40 focus:ring-2 focus:ring-indigo-400 placeholder:text-indigo-300/40'
+                      : 'bg-pink-50/50 hover:bg-pink-50/80 focus:bg-white text-gray-800 border-pink-200 focus:ring-2 focus:ring-pink-400 placeholder:text-gray-400'
                   }`}
                 />
                 <button
@@ -869,11 +951,13 @@ export default function App() {
                   className={`mt-2 text-left p-2.5 rounded-xl border text-xs flex items-center justify-between ${
                     isSadBlueTheme
                       ? 'bg-blue-950 text-sky-200 border-blue-700'
+                      : isMidnight
+                      ? 'bg-[#141438] text-emerald-300 border-emerald-500/30'
                       : 'bg-emerald-50 text-emerald-800 border-emerald-100'
                   }`}
                 >
                   <span>ข้อความล่าสุด: &quot;{sentMessage}&quot;</span>
-                  <span className="text-[10px] text-emerald-500 font-medium">ส่งถึงน้องแล้วนะ ✉️</span>
+                  <span className="text-[10px] text-emerald-400 font-medium">ส่งถึงน้องแล้วนะ ✉️</span>
                 </motion.div>
               )}
             </motion.div>
@@ -884,7 +968,7 @@ export default function App() {
       {/* Footer & Stealth Watermark:
           Click 3 times to open admin sheet modal without visitor suspecting anything! */}
       <footer className="w-full px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-xs relative z-30 pointer-events-auto">
-        <div className="text-[11px] text-gray-400 hidden sm:block">
+        <div className={`text-[11px] hidden sm:block ${isMidnight ? 'text-indigo-400/60' : 'text-gray-400'}`}>
           {noCount > 0 && noCount < 3 && `(ปฏิเสธไปแล้ว ${noCount}/3 ครั้ง)`}
         </div>
 
@@ -895,6 +979,8 @@ export default function App() {
           className={`sm:fixed sm:bottom-4 sm:right-6 px-3.5 py-1.5 rounded-full border shadow-xs font-medium text-[11px] sm:text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
             isSadBlueTheme
               ? 'bg-blue-950/80 backdrop-blur-md border-blue-800 text-sky-300 hover:bg-blue-900'
+              : isMidnight
+              ? 'bg-[#16163a]/80 backdrop-blur-md border-indigo-500/30 text-indigo-200 hover:bg-[#20204d]'
               : 'bg-white/80 backdrop-blur-md border-pink-100/90 text-pink-600/90 hover:bg-white'
           }`}
           title="From เด็กที่ชอบอยู่กับพี่ (คลิก 3 ครั้งเพื่อดูข้อมูลชีต)"
